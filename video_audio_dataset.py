@@ -48,7 +48,7 @@ class VideoAudioDataset(Dataset):
         sample_name = name_id_dic[str(idx)]
         sample_data = json_dic[sample_name]
 
-        # video_npy = np.load(os.path.join(self.root,'video_npy',sample_name+'.avi.npy'))
+        video_npy = np.load(os.path.join(self.root,'video_npy',sample_name+'.avi.npy'))
         audio_npy = np.load(os.path.join(self.root,sample_data["relative_path"]))
         if sample_data['text_label'] == 1:
             text_npy = np.load(os.path.join(self.root,'pos_text_npy',sample_name+'.npy'))
@@ -56,12 +56,12 @@ class VideoAudioDataset(Dataset):
             if os.path.exists(os.path.join(self.root,'neg2_text_npy',sample_name+'.npy')):
                 text_npy = np.load(os.path.join(self.root, 'neg2_text_npy', sample_name + '.npy'))
             else:
-                # text_npy = np.zeros(768)
-                text_npy = np.zeros((24,300))
-        e = ExtractVideoFeature()
-        video_npy = e.run_single_video(mode='rgb', root=os.path.join(self.root,'pics_dir'),
-                                      one_pic_dir=os.path.join(self.root,'pics_dir',sample_name+'.mp4'),
-                                      load_model='/home/jiamengzhao/repos/AudioVideoNet/pytorch_i3d/models/rgb_charades.pt')
+                text_npy = np.zeros(768)
+                # text_npy = np.zeros((24,300))
+        # e = ExtractVideoFeature()
+        # video_npy = e.run_single_video(mode='rgb', root=os.path.join(self.root,'pics_dir'),
+        #                               one_pic_dir=os.path.join(self.root,'pics_dir',sample_name+'.mp4'),
+        #                               load_model='/home/jiamengzhao/repos/AudioVideoNet/pytorch_i3d/models/rgb_charades.pt')
 
         sample = {'np_V': video_npy, 'np_A': audio_npy, 'text_data': text_npy,
                   'va_label': sample_data["va_label"], 'text_label': sample_data['text_label']}

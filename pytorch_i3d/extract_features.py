@@ -37,7 +37,7 @@ def run( mode, root, split, load_model, save_dir,batch_size=1):
     # setup dataset
     test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
 
-    dataset = Dataset(split, 'training', root, mode, test_transforms, num=-1, save_dir=save_dir)
+    dataset = Dataset(split, 'training', root, mode, test_transforms, num=-1)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
     # print(dataset[0])
 

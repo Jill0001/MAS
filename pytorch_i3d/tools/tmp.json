@@ -1,7 +1,17 @@
 {
     "interview-01-013.mp4": {
         "subset": "training",
-        "duration": 1.7,
+        "duration": 7.4,
+        "actions": []
+    },
+    "1_man_silent_lips_fps30_resized.mp4": {
+        "subset": "training",
+        "duration": 58.5,
+        "actions": []
+    },
+    "pertand_pos_video.mp4": {
+        "subset": "training",
+        "duration": 58.5,
         "actions": []
     }
 }

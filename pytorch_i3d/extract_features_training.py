@@ -1,7 +1,7 @@
 import os
 
 # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = ""
+os.environ['CUDA_VISIBLE_DEVICES'] = "2"
 import sys
 import argparse
 import json
@@ -33,68 +33,6 @@ from pytorch_i3d.pytorch_i3d import InceptionI3d
 
 from pytorch_i3d.charades_dataset_full import Charades as Dataset
 
-
-def run(mode, root, split, load_model, save_dir, batch_size=1):
-    # setup dataset
-    test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
-
-    dataset = Dataset(split, 'training', root, mode, test_transforms, num=-1, save_dir=save_dir)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1,
-                                             pin_memory=True)
-    # print(dataset[0])
-
-    # val_dataset = Dataset(split, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir)
-    # val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
-
-    dataloaders = {'train': dataloader, 'val': dataloader}
-    # datasets = {'train': dataset, 'val': val_dataset}
-
-    # setup the model
-    if mode == 'flow':
-        i3d = InceptionI3d(400, in_channels=2)
-    else:
-        i3d = InceptionI3d(400, in_channels=3)
-    i3d.replace_logits(157)
-    i3d.load_state_dict(torch.load(load_model))
-    # i3d.cuda()
-
-    for phase in ['train']:
-        i3d.train(False)  # Set model to evaluate mode
-
-        tot_loss = 0.0
-        tot_loc_loss = 0.0
-        tot_cls_loss = 0.0
-
-        # Iterate over data.
-        for data in dataloaders[phase]:
-            # get the inputs
-            inputs, labels, name = data
-            # print(name)
-            if os.path.exists(os.path.join(save_dir, name[0] + '.npy')):
-                continue
-
-            b, c, t, h, w = inputs.shape
-            if t > 400:  # 根据gpu memory调节
-                # print(t)
-                features = []
-                for start in range(1, t - 56, 1600):
-                    end = min(t - 1, start + 1600 + 56)
-                    start = max(1, start - 48)
-                    # ip = Variable(torch.from_numpy(inputs.numpy()[:, :, start:end]).cuda(), volatile=True)
-                    ip = Variable(torch.from_numpy(inputs.numpy()[:, :, start:end]), volatile=True)
-                    features.append(i3d.extract_features(ip).squeeze(0).permute(1, 2, 3, 0).data)
-
-                    # features.append(i3d.extract_features(ip).squeeze(0).permute(1, 2, 3, 0).data.cpu().numpy())
-                # np.save(os.path.join(save_dir, name[0]), np.concatenate(features, axis=0))
-            else:
-                # wrap them in Variable
-                # inputs = Variable(inputs.cuda(), volatile=True)
-                inputs = Variable(inputs, volatile=True)
-                features = i3d.extract_features(inputs)
-                # features = features.squeeze(0).permute(1, 2, 3, 0).data.cpu().numpy()
-                features = features.squeeze(0).permute(1, 2, 3, 0).data
-                print(features.shape)
-                # np.save(os.path.join(save_dir, name[0]), features.squeeze(0).permute(1, 2, 3, 0).data.cpu().numpy())
 
 def generate_fake_json_one(pics_dir):
     # {"cutpics": {"subset": "training", "duration": 2, "actions": []}}
@@ -148,7 +86,7 @@ class ExtractVideoFeature():
             #     continue
 
             b, c, t, h, w = inputs.shape
-            if t > 400:  # 根据gpu memory调节
+            if t > 800:  # 根据gpu memory调节
                 # print(t)
                 features = []
                 for start in range(1, t - 56, 1600):
@@ -156,9 +94,9 @@ class ExtractVideoFeature():
                     start = max(1, start - 48)
                     # ip = Variable(torch.from_numpy(inputs.numpy()[:, :, start:end]).cuda(), volatile=True)
                     with torch.no_grad():
-                        ip = Variable(torch.from_numpy(inputs.numpy()[:, :, start:end]), volatile=True)
+                        ip = Variable(torch.from_numpy(inputs.numpy()[:, :, start:end]))
                     features.append(i3d.extract_features(ip).squeeze(0).permute(1, 2, 3, 0).data)
-                    return features
+                return torch.Tensor(features)
                     # features.append(i3d.extract_features(ip).squeeze(0).permute(1, 2, 3, 0).data.cpu().numpy())
                 # np.save(os.path.join(save_dir, name[0]), np.concatenate(features, axis=0))
             else:

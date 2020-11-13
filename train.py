@@ -16,16 +16,10 @@ from pytorch_i3d.extract_features_training import ExtractVideoFeature
 
 def load_data(data_root, json_name):
     train_dataset = VideoAudioDataset(data_root, os.path.join(data_root, json_name))
-    train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, drop_last=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=2, shuffle=True, drop_last=True)
 
     return train_dataloader
 
-# e = ExtractVideoFeature()
-# features = e.run_single_video(mode='rgb', root='/home/jiamengzhao/data_root/data_root_test/pics_dir',
-#                               one_pic_dir='/home/jiamengzhao/data_root/data_root_test/pics_dir/interview-01-013.mp4',
-#                               load_model='/home/jiamengzhao/repos/AudioVideoNet/pytorch_i3d/models/rgb_charades.pt')
-# print(features)
-# exit()
 
 parser = argparse.ArgumentParser()
 
@@ -37,12 +31,9 @@ args = parser.parse_args()
 
 data_root = args.data_root
 saved_model_path = args.save_model_path
-# before_mf_path = args.topics_m_path
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# before_mf = np.load(before_mf_path)
-# before_mf = torch.tensor(before_mf).float().to(device)  # tensor
 
 LOAD_MODEL = False
 
@@ -54,11 +45,12 @@ if LOAD_MODEL:
     print('loading checkpoint!')
 else:
     model = RNN(1024, 845, 1024, 3).to(device)
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
 train_dataloader = load_data(data_root, 'train_label.json')
 
 criterion_c = nn.CrossEntropyLoss()
 criterion_t = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss()
 
 for epoch in range(200):  # loop over the dataset multiple times
 
@@ -77,14 +69,21 @@ for epoch in range(200):  # loop over the dataset multiple times
 
         optimizer.zero_grad()
         c_out, mf_out, t_out = model(input_v, input_a, input_t)
-        # print(c_out)
-        # print(va_label)
-        c_loss = criterion_c(c_out, va_label)
+        # c_out=c_out.long()
+        # t_out = t_out.long()
 
-        t_loss = criterion_t(t_out, text_label)
+        all_out = (c_out*t_out)
+        all_label = (va_label*text_label)
+        all_loss = criterion(all_out,all_label)
+
+        # print(va_label)
+        # c_loss = criterion_c(c_out, va_label)
+        # t_loss = criterion_t(t_out, text_label)
+
         mf_loss = mf_out
-        loss = c_loss + mf_loss + t_loss
-        # print(loss)
+        # loss = c_loss + mf_loss + t_loss
+        loss = all_loss+mf_loss
+        print(loss)
 
         loss.backward()
         optimizer.step()
@@ -96,7 +95,6 @@ for epoch in range(200):  # loop over the dataset multiple times
                   (epoch + 1, idx + 1, running_loss / 10))
             running_loss = 0.0
     if epoch % 10 == 0:
-        print("?")
         pass
         # print('Saving Net...')
         # torch.save(model, os.path.join(saved_model_path, 'epoch' + str(epoch) + '.pth'))

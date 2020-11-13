@@ -46,6 +46,8 @@ for npy in video_npys:
     np_arr = np.load(npy_path)
     if max_length_video > np_arr.shape[0]:
         zero4concate = np.zeros((max_length_video - np_arr.shape[0],1,1,1024))
+        # zero4concate = np.zeros((max_length_video - np_arr.shape[0],1024))
+        # print(np_arr.shape)
         np_arr = np.concatenate((np_arr, zero4concate), axis=0)
     if max_length_video < np_arr.shape[0]:
         print("problem!")
