@@ -5,7 +5,7 @@ from torch.nn import Parameter
 
 # change! origin topics matrix path
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/data_root_test/text_m_all.npy")).float().to(device)
+before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/new_test_data_root/text_m_all.npy")).float().to(device)
 origin_topics_shape = before_mf.shape
 
 
@@ -76,8 +76,8 @@ class RNN(nn.Module):
 
         batch_size = v.size(0)
 
-        t = t.view(batch_size, 768)  # 768 is text embedding size
-        # t = t.view(batch_size, 24*300)  # Todo: need fix
+        # t = t.view(batch_size, 768)  # 768 is text embedding size
+        t = t.view(batch_size, 24*300)  # Todo: need fix
         t_distance = torch.mm(t, self.topics.t())
         t_out = self.fc_text(t_distance)
 

@@ -73,8 +73,10 @@ def generate_one_sample(sample_audio_npy_path):
         one_sampel_dic['text_label'] = 1
     elif one_sample_text_name in neg_text_names:
         one_sampel_dic['text_label'] = 0
+        # one_sampel_dic=[]
     elif one_sampel_dic['va_label'] == 0:
         one_sampel_dic['text_label'] = 0
+        # one_sampel_dic = []
     else:
         one_sampel_dic = []
 

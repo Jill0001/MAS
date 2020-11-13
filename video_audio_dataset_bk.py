@@ -2,30 +2,15 @@ import os
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-import cv2
+
 import json
 from pytorch_i3d.extract_features_training import ExtractVideoFeature
-
-
-def video_to_tensor(pic):
-    """Convert a ``numpy.ndarray`` to tensor.
-    Converts a numpy.ndarray (T x H x W x C)
-    to a torch.FloatTensor of shape (C x T x H x W)
-
-    Args:
-         pic (numpy.ndarray): Video to be converted to tensor.
-    Returns:
-         Tensor: Converted video.
-    """
-    return torch.from_numpy(pic.transpose([3, 0, 1, 2]))
-
-
 class VideoAudioDataset(Dataset):
 
     def __init__(self, root_dir, json_file, transform=None):
-        self.root = root_dir
+        self.root=root_dir
         self.json_file = json_file
-        self.transforms = transform
+        self.transform = transform
 
     def __len__(self):
         """
@@ -45,6 +30,7 @@ class VideoAudioDataset(Dataset):
     #     np_V_new = np.squeeze(np_V)
     #     return [np_V_new,np_A_new]
 
+
     def __getitem__(self, idx):
         """
         继承 Dataset 类后,必须重写的一个方法
@@ -62,18 +48,12 @@ class VideoAudioDataset(Dataset):
         sample_name = name_id_dic[str(idx)]
         sample_data = json_dic[sample_name]
 
-        image_list = os.listdir(os.path.join(self.root, 'pics_dir', sample_name + '.avi'))
-        video_image = load_rgb_frames(os.path.join(self.root, 'pics_dir', sample_name + '.avi'), 1, len(image_list))
-
-        video_image = self.transforms(video_image)
-
-        video_image = video_to_tensor(video_image)
-
-        audio_npy = np.load(os.path.join(self.root, sample_data["relative_path"]))
+        video_npy = np.load(os.path.join(self.root,'video_npy',sample_name+'.avi.npy'))
+        audio_npy = np.load(os.path.join(self.root,sample_data["relative_path"]))
         if sample_data['text_label'] == 1:
-            text_npy = np.load(os.path.join(self.root, 'pos_text_npy', sample_name + '.npy'))
+            text_npy = np.load(os.path.join(self.root,'pos_text_npy',sample_name+'.npy'))
         else:
-            if os.path.exists(os.path.join(self.root, 'neg2_text_npy', sample_name + '.npy')):
+            if os.path.exists(os.path.join(self.root,'neg2_text_npy',sample_name+'.npy')):
                 text_npy = np.load(os.path.join(self.root, 'neg2_text_npy', sample_name + '.npy'))
             else:
                 text_npy = np.zeros(768)
@@ -83,23 +63,10 @@ class VideoAudioDataset(Dataset):
         #                               one_pic_dir=os.path.join(self.root,'pics_dir',sample_name+'.mp4'),
         #                               load_model='/home/jiamengzhao/repos/AudioVideoNet/pytorch_i3d/models/rgb_charades.pt')
 
-        sample = {'np_V': video_image, 'np_A': audio_npy, 'text_data': text_npy,
+        sample = {'np_V': video_npy, 'np_A': audio_npy, 'text_data': text_npy,
                   'va_label': sample_data["va_label"], 'text_label': sample_data['text_label']}
 
+        # if self.transform:
+        #     sample = self.transform(sample)
+
         return sample
-
-
-def load_rgb_frames(image_dir, start, num):
-    frames = []
-    for i in range(start, start + num):
-        #         print(os.path.join(image_dir, str(i)+'.jpg'))
-        img = cv2.imread(os.path.join(image_dir, str(i) + '.jpg'))[:, :, [2, 1, 0]]
-        # img = cv2.imread(os.path.join(image_dir, vid, vid+'-'+str(i).zfill(6)+'.jpg'))[:, :, [2, 1, 0]]
-        w, h, c = img.shape
-        if w < 226 or h < 226:
-            d = 226. - min(w, h)
-            sc = 1 + d / min(w, h)
-            img = cv2.resize(img, dsize=(0, 0), fx=sc, fy=sc)
-        img = (img / 255.) * 2 - 1
-        frames.append(img)
-    return np.asarray(frames, dtype=np.float32)
