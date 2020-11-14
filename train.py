@@ -94,7 +94,7 @@ for epoch in range(200):  # loop over the dataset multiple times
         text_label = i['text_label'].long().to(device)
 
         is_reverse = np.random.rand(1)
-        if is_reverse>0 and va_label:
+        if is_reverse> 0.5 and va_label:
             input_a = consistency_aug(input_a)
             va_label = va_label-1
 
@@ -138,6 +138,6 @@ for epoch in range(200):  # loop over the dataset multiple times
             wr.flush()
             running_loss = 0.0
     if epoch % 10 == 0:
-        pass
-        # print('Saving Net...')
-        # torch.save(model, os.path.join(saved_model_path, 'epoch' + str(epoch) + '.pth'))
+        # pass
+        print('Saving Net...')
+        torch.save(model, os.path.join(saved_model_path, 'epoch' + str(epoch) + '.pth'))
