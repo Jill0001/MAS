@@ -14,9 +14,9 @@ from torchvision import datasets, transforms
 from pytorch_i3d import videotransforms
 from torch import autograd
 import argparse
-from pytorch_i3d.pytorch_i3d import InceptionI3d
-from myrnn import RNN
-from pytorch_i3d.extract_features_training import ExtractVideoFeature
+# from pytorch_i3d.pytorch_i3d import InceptionI3d
+from model_new import RNN
+# from pytorch_i3d.extract_features_training import ExtractVideoFeature
 import time
 import random
 from tqdm import tqdm
@@ -26,7 +26,7 @@ test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
 
 def load_data(data_root, json_name):
     dataset = VideoAudioDataset(data_root, os.path.join(data_root, json_name), transform=test_transforms)
-    dataloader = DataLoader(dataset, batch_size=1, num_workers=4, shuffle=True, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=4, shuffle=True, drop_last=True)
 
     return dataloader
 
@@ -56,22 +56,17 @@ if LOAD_MODEL:
     # model.load_state_dict(model['state_dict'])
     print('loading checkpoint!')
 else:
-    model = RNN(1024, 845, 1024, 3).to(device)
+    model = RNN().to(device)
 
 optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
 
-train_dataloader = load_data(data_root, 'train_label_pos.json')
-val_dataloader = load_data(data_root,'val_label_pos.json')
+train_dataloader = load_data(data_root, 'train_label_fake.json')
+val_dataloader = load_data(data_root,'train_label_fake.json')
 
-i3d = InceptionI3d(400, in_channels=3)
-i3d.replace_logits(157)
-i3d.load_state_dict(torch.load('./pytorch_i3d/models/rgb_charades.pt'))
-i3d.to(device)
-i3d.train(False)  # Set model to evaluate mode
-
-criterion_c = nn.CrossEntropyLoss()
-criterion_t = nn.CrossEntropyLoss()
+criterion_L1 = nn.L1Loss()
+criterion_t = nn.L1Loss()
 criterion = nn.CrossEntropyLoss()
+criterion_mf = nn.L1Loss()
 
 
 def consistency_aug(audio_npy):
@@ -91,15 +86,29 @@ time_now = time.time()
 
 
 def extract_v_feature(input_v):
-    with torch.no_grad():
-        features = i3d.extract_features(input_v)
-    features = features.squeeze(0).permute(1, 2, 3, 0)
+    batch_video_npys = []
+    for dir in input_v:
+        arr_names = [f for f in os.listdir(dir) if f.endswith('.npy')]
+        video_npy = []
+        for i in range(1, len(arr_names) + 1):
+            arr_name = os.path.join(dir, str(i) + '.npy')
+            arr_number = np.load(arr_name)
+            center = arr_number[30]
+            # after_decenter = np.zeros((1, 2))
+            after_decenter = []
+            for j in arr_number:
+                after_decenter.append(j - center)
 
-    zero4concate = torch.zeros((50 - features.shape[0], 1, 1, 1024)).to(device)
-    features = torch.cat((features, zero4concate), axis=0)
-    features = features.squeeze()
-    features = features.unsqueeze(0)
-    return features
+                # after_decenter = np.concatenate((after_decenter, (np.expand_dims(j - center, 0))))
+            after_decenter = np.array(after_decenter)
+            video_npy.append(after_decenter)
+        video_npy = np.array(video_npy)
+        if video_npy.shape[0]<500: #padding size
+            padding_zeros = np.zeros((500-video_npy.shape[0],video_npy.shape[1],video_npy.shape[2]))
+            video_npy = np.concatenate((video_npy,padding_zeros))
+        batch_video_npys.append(video_npy)
+        batch_video_npys_arr = np.array(batch_video_npys)
+    return batch_video_npys_arr
 
 
 def eval_net(net, loader, device):
@@ -152,39 +161,31 @@ for epoch in range(2000):  # loop over the dataset multiple times
     running_loss = 0.0
     for idx, i in enumerate(train_dataloader):
 
-        input_a = i['np_A'].to(device)
-        input_v = i['np_V'].to(device)
+        input_a = torch.unsqueeze(i['np_A'].float().to(device),dim=1)
+        input_v = torch.unsqueeze(torch.Tensor(extract_v_feature(i['np_V'])).to(device),dim=1)
         input_t = i['text_data'].float().to(device)
 
         va_label = i['va_label'].long().to(device)
         text_label = i['text_label'].long().to(device)
 
-        is_reverse = np.random.rand(1)
-        if is_reverse> 0.5 and va_label:
-            input_a = consistency_aug(input_a)
-            va_label = va_label-1
-        features = extract_v_feature(input_v)
+        # is_reverse = np.random.rand(1)
+        # if is_reverse> 0.5 and va_label:
+        #     input_a = consistency_aug(input_a)
+        #     va_label = va_label-1
 
         optimizer.zero_grad()
-        c_out, mf_out, t_out = model(features, input_a, input_t)
-        c_out = c_out.unsqueeze(0)
+        c_out, mf_out, t_out = model(input_v, input_a, input_t)
+        c_out = torch.squeeze(c_out, dim=1)
 
-        # all_out = (c_out * t_out)
-        # all_label = (va_label * text_label)
-        # all_loss = criterion(all_out, all_label)
+        vat_out = (c_out * t_out)
+        vat_label = (va_label * text_label)
+        vat_loss = criterion_L1(vat_out, vat_label)
 
-        # print(va_label)
-        c_loss = criterion_c(c_out, va_label)
-        loss = c_loss
-        # t_loss = criterion_t(t_out, text_label)
-
-        # mf_loss = mf_out
-        # loss = all_loss + mf_loss
+        mf_loss = mf_out
+        loss = vat_out + mf_loss
 
         loss.backward()
         optimizer.step()
-
-
 
         # print statistics
 

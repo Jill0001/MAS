@@ -76,8 +76,8 @@ class RNN(nn.Module):
 
         batch_size = v.size(0)
 
-        # t = t.view(batch_size, 768)  # 768 is text embedding size
-        t = t.view(batch_size, 24*300)  # Todo: need fix
+        t = t.view(batch_size, 768)  # 768 is text embedding size
+        # t = t.view(batch_size, 24*300)  # Todo: need fix
         t_distance = torch.mm(t, self.topics.t())
         t_out = self.fc_text(t_distance)
 

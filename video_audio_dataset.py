@@ -62,12 +62,13 @@ class VideoAudioDataset(Dataset):
         sample_name = name_id_dic[str(idx)]
         sample_data = json_dic[sample_name]
 
-        image_list = os.listdir(os.path.join(self.root, 'pics_dir', sample_name + '.avi'))
-        video_image = load_rgb_frames(os.path.join(self.root, 'pics_dir', sample_name + '.avi'), 1, len(image_list))
-
-        video_image = self.transforms(video_image)
-
-        video_image = video_to_tensor(video_image)
+        # image_list = os.listdir(os.path.join(self.root, 'pics_dir', sample_name + '.avi'))
+        # video_image = load_rgb_frames(os.path.join(self.root, 'pics_dir', sample_name + '.avi'), 1, len(image_list))
+        #
+        # video_image = self.transforms(video_image)
+        #
+        # video_image = video_to_tensor(video_image)
+        video_path = os.path.join(self.root, 'lmks', sample_name)
 
         audio_npy = np.load(os.path.join(self.root, sample_data["relative_path"]))
         if sample_data['text_label'] == 1:
@@ -83,7 +84,7 @@ class VideoAudioDataset(Dataset):
         #                               one_pic_dir=os.path.join(self.root,'pics_dir',sample_name+'.mp4'),
         #                               load_model='/home/jiamengzhao/repos/AudioVideoNet/pytorch_i3d/models/rgb_charades.pt')
 
-        sample = {'np_V': video_image, 'np_A': audio_npy, 'text_data': text_npy,
+        sample = {'np_V': video_path, 'np_A': audio_npy, 'text_data': text_npy,
                   'va_label': sample_data["va_label"], 'text_label': sample_data['text_label']}
 
         return sample

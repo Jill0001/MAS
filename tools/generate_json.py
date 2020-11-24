@@ -8,11 +8,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--data_root", help="main data root")
 parser.add_argument("--train_label_json", help="train label json path")
 parser.add_argument("--test_label_json", help="test label json path")
+parser.add_argument("--val_label_json", help="val label json path")
 
 args = parser.parse_args()
 data_root = args.data_root
 train_json_path = args.train_label_json
 test_json_path = args.test_label_json
+val_json_path = args.val_label_json
 
 
 # audio_npy_root = "/home/jiamengzhao/repos/AudioVideoNet/new_test_data_root"
@@ -23,18 +25,10 @@ pos_audio_dir = os.path.join(data_root, 'pos_audio_npy')
 
 text_npy_dir_pos = os.path.join(data_root, 'pos_text_npy')
 text_npy_dir_neg = os.path.join(data_root, 'neg2_text_npy')
-# text_json_path = "/home/jiamengzhao/repos/AudioVideoNet/new_test_data_root/audio_gloved.json"  #after word2vec with label
-
-# main_json_path = "/home/jiamengzhao/repos/AudioVideoNet/new_test_data_root/label1.json"
-# train_json_path = "/home/jiamengzhao/repos/AudioVideoNet/new_test_data_root/label_train1.json"
-# test_json_path = "/home/jiamengzhao/repos/AudioVideoNet/new_test_data_root/label_test1.json"
-
-# main_json_path = os.path.join(data_root,'label.json')
-# train_json_path = os.path.join(data_root,'label_train.json')
-# test_json_path = os.path.join(data_root,'label_test.json')
 
 dict_json = {}
 train_json = {}
+val_json = {}
 test_json = {}
 
 
@@ -46,18 +40,17 @@ def load_json(json_path):
 
 train_id = 0
 test_id = 0
+val_id =0
 all_id = 0
 
 
 def generate_one_sample(sample_audio_npy_path):
     one_sample_name = sample_audio_npy_path.split('/')[-1].replace('.npy', '')
     one_sampel_dic = {}
-    if "pos_audio" in sample_audio_npy_path:
+    if "pos_audio" in sample_audio_npy_path or "neg2_audio" in sample_audio_npy_path:
         one_sampel_dic['va_label'] = 1
     elif "neg1_audio" in sample_audio_npy_path:
         one_sampel_dic['va_label'] = 0
-    elif "neg2_audio" in sample_audio_npy_path:
-        one_sampel_dic['va_label'] = 1
 
     # one_sampel_dic['name'] = one_sample_name
     one_sampel_dic['relative_path'] = single_npy_path.split('/')[-2] + "/" + single_npy_path.split('/')[-1]
@@ -81,11 +74,16 @@ def generate_one_sample(sample_audio_npy_path):
         one_sampel_dic = []
 
     train_or_test = np.random.rand(1)
-    if train_or_test > 0.1 and one_sampel_dic != []:
+    if train_or_test > 0.2 and one_sampel_dic != []:
         train_json[one_sample_name] = one_sampel_dic
         global train_id
         one_sampel_dic['id'] = train_id
         train_id = train_id + 1
+    elif train_or_test > 0.1 and one_sampel_dic != []:
+        val_json[one_sample_name] = one_sampel_dic
+        global val_id
+        one_sampel_dic['id'] = val_id
+        val_id = val_id + 1
     elif train_or_test <= 0.1 and one_sampel_dic != []:
         global test_id
         test_json[one_sample_name] = one_sampel_dic
@@ -117,3 +115,5 @@ def write_json_file(json_path, json_dic):
 # write_json_file(main_json_path,dict_json)
 write_json_file(train_json_path, train_json)
 write_json_file(test_json_path, test_json)
+write_json_file(val_json_path, val_json)
+
