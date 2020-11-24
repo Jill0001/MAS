@@ -1,6 +1,6 @@
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = ""
+os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -15,27 +15,17 @@ from pytorch_i3d import videotransforms
 from torch import autograd
 import argparse
 # from pytorch_i3d.pytorch_i3d import InceptionI3d
-from model_new import RNN
+from model_new import VATNN
 # from pytorch_i3d.extract_features_training import ExtractVideoFeature
 import time
 import random
 from tqdm import tqdm
 
-test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
-
-
-def load_data(data_root, json_name):
-    dataset = VideoAudioDataset(data_root, os.path.join(data_root, json_name), transform=test_transforms)
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=4, shuffle=True, drop_last=True)
-
-    return dataloader
-
+# test_transforms = transforms.Compose([videotransforms.CenterCrop(224)])
 
 parser = argparse.ArgumentParser()
-
 parser.add_argument("--data_root", help="data main root")
 parser.add_argument("--save_model_path", help="path to save models (.pth)")
-# parser.add_argument("--topics_m_path", help="origin topics matrix path (.npy)")
 
 args = parser.parse_args()
 
@@ -45,7 +35,15 @@ saved_model_path = args.save_model_path
 if not os.path.exists(saved_model_path):
     os.makedirs(saved_model_path)
 
+def load_data(data_root, json_name):
+    dataset = VideoAudioDataset(data_root, os.path.join(data_root, json_name))
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=4, shuffle=True, drop_last=True)
+    return dataloader
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/new_test_data_root/text_m_all.npy")).float().to(device)
+origin_topics_shape = before_mf.shape
 
 LOAD_MODEL = False
 
@@ -56,7 +54,7 @@ if LOAD_MODEL:
     # model.load_state_dict(model['state_dict'])
     print('loading checkpoint!')
 else:
-    model = RNN().to(device)
+    model = VATNN(origin_topics_shape).to(device)
 
 optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
 
@@ -111,6 +109,16 @@ def extract_v_feature(input_v):
     return batch_video_npys_arr
 
 
+def padding_a_feature(input_a):
+    if input_a.shape[1]<1500:
+        padding_zeros = np.zeros((input_a.shape[0],1500 - input_a.shape[1],input_a.shape[2]))
+        input_a = np.concatenate((input_a, padding_zeros))
+        return input_a
+    else:
+        return input_a[:,:1500,:]
+
+
+
 def eval_net(net, loader, device):
     """Evaluation without the densecrf with the dice coefficient"""
     net.eval()
@@ -161,7 +169,8 @@ for epoch in range(2000):  # loop over the dataset multiple times
     running_loss = 0.0
     for idx, i in enumerate(train_dataloader):
 
-        input_a = torch.unsqueeze(i['np_A'].float().to(device),dim=1)
+
+        input_a = torch.unsqueeze(padding_a_feature(i['np_A']).float().to(device),dim=1)
         input_v = torch.unsqueeze(torch.Tensor(extract_v_feature(i['np_V'])).to(device),dim=1)
         input_t = i['text_data'].float().to(device)
 
@@ -181,9 +190,9 @@ for epoch in range(2000):  # loop over the dataset multiple times
         vat_label = (va_label * text_label)
         vat_loss = criterion_L1(vat_out, vat_label)
 
-        mf_loss = mf_out
-        loss = vat_out + mf_loss
-
+        mf_loss = criterion_L1(mf_out,before_mf)
+        loss = vat_loss + mf_loss
+        print(loss)
         loss.backward()
         optimizer.step()
 

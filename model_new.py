@@ -5,29 +5,11 @@ from torch.nn import Parameter
 
 # change! origin topics matrix path
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/new_test_data_root/text_m_all.npy")).float().to(device)
-origin_topics_shape = before_mf.shape
 
 
-class InputTransition(nn.Module):
-    def __init__(self):
-        super(InputTransition, self).__init__()
-        # self.conv1 = nn.Conv3d(1, 16, kernel_size=5, padding=2)
-        # self.bn1 = ContBatchNorm3d(16)
-        # self.relu1 = ELUCons(elu, 16)
-
-    def forward(self, x):
-        # do we want a PRELU here as well?
-        # out = self.bn1(self.conv1(x))
-        # split input in to 16 channels
-        # x16 = torch.cat((x, x, x, x, x, x, x, x,
-        #                  x, x, x, x, x, x, x, x), 0)
-        x4 = torch.cat((x, x, x, x), 1)
-        return x4
-
-class RNN(nn.Module):
-    def __init__(self,):
-        super(RNN, self).__init__()
+class VATNN(nn.Module):
+    def __init__(self,topic_matrix_shape):
+        super(VATNN, self).__init__()
 
         self.conv3d_v_1 = nn.Conv3d(1, 32, (6,3,2), padding=(3,1,0))
         self.conv3d_v_2 = nn.Conv3d(32, 64, (6, 3, 1), padding=(3, 1, 0))
@@ -49,8 +31,8 @@ class RNN(nn.Module):
 
         self.relu = nn.ReLU()
 
-        self.topics = Parameter(torch.rand(30, origin_topics_shape[1]), requires_grad=True)
-        self.trash = Parameter(torch.rand(origin_topics_shape[0], 30), requires_grad=True)
+        self.topics = Parameter(torch.rand(30, topic_matrix_shape[1]), requires_grad=True)
+        self.trash = Parameter(torch.rand(topic_matrix_shape[0], 30), requires_grad=True)
         self.fc_atten = nn.Linear(768,768)
         self.fc_text = nn.Linear(self.topics.shape[0], 2)
         self.l1loss=  nn.L1Loss()
@@ -93,8 +75,8 @@ class RNN(nn.Module):
 
         mf_result = torch.mm(self.trash, self.topics)
 
-        mf_loss =self.l1loss(mf_result,before_mf)
+        # mf_loss =self.l1loss(mf_result,before_mf)
         # mf_distance = before_mf-mf_result
-        # mf_out = torch.mean((before_mf - mf_result))
+        # mf_out = torch.mean((mf_distance)**2)
 
-        return va_corelation, mf_loss, t_out
+        return va_corelation, mf_result, t_out
