@@ -71,6 +71,12 @@ class VideoAudioDataset(Dataset):
         video_path = os.path.join(self.root, 'lmks', sample_name)
 
         audio_npy = np.load(os.path.join(self.root, sample_data["relative_path"]))
+        if audio_npy.shape[0]<1500:
+            padding_zeros = np.zeros((1500 - audio_npy.shape[0],audio_npy.shape[1]))
+            audio_npy = np.concatenate((audio_npy, padding_zeros))
+        else:
+            audio_npy = audio_npy[:1500,:]
+
         if sample_data['text_label'] == 1:
             text_npy = np.load(os.path.join(self.root, 'pos_text_npy', sample_name + '.npy'))
         else:

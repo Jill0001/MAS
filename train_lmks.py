@@ -109,13 +109,13 @@ def extract_v_feature(input_v):
     return batch_video_npys_arr
 
 
-def padding_a_feature(input_a):
-    if input_a.shape[1]<1500:
-        padding_zeros = np.zeros((input_a.shape[0],1500 - input_a.shape[1],input_a.shape[2]))
-        input_a = np.concatenate((input_a, padding_zeros))
-        return input_a
-    else:
-        return input_a[:,:1500,:]
+# def padding_a_feature(input_a):
+#     if input_a.shape[1]<1500:
+#         padding_zeros = np.zeros((input_a.shape[0],1500 - input_a.shape[1],input_a.shape[2]))
+#         input_a = np.concatenate((input_a, padding_zeros))
+#         return input_a
+#     else:
+#         return input_a[:,:1500,:]
 
 
 
@@ -170,7 +170,7 @@ for epoch in range(2000):  # loop over the dataset multiple times
     for idx, i in enumerate(train_dataloader):
 
 
-        input_a = torch.unsqueeze(padding_a_feature(i['np_A']).float().to(device),dim=1)
+        input_a = torch.unsqueeze((i['np_A']).float().to(device),dim=1)
         input_v = torch.unsqueeze(torch.Tensor(extract_v_feature(i['np_V'])).to(device),dim=1)
         input_t = i['text_data'].float().to(device)
 
