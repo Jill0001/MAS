@@ -123,45 +123,71 @@ def eval_net(net, loader, device):
     """Evaluation without the densecrf with the dice coefficient"""
     net.eval()
     n_val = len(loader)  # the number of batch
-    c_right =0
+    c_right = 0
+    c_tp = 0
+    t_right = 0
+    t_tp = 0
+    all_right = 0
+    all_tp = 0
+    c_result = []
+    c_label = []
+    t_result = []
+    t_label = []
+    all_result = []
+    all_label = []
+
     with tqdm(total=n_val, desc='Validation round', unit='batch', leave=False) as pbar:
         for batch in loader:
-            input_a = i['np_A'].to(device)
-            input_v = i['np_V'].to(device)
-
+            input_a = torch.unsqueeze((i['np_A']).float().to(device), dim=1)
+            input_v = torch.unsqueeze(torch.Tensor(extract_v_feature(i['np_V'])).to(device), dim=1)
             input_t = i['text_data'].float().to(device)
-            feature = extract_v_feature(input_v)
-            with torch.no_grad():
-                c_out, mf_out, t_out = net(feature, input_a, input_t)
-            # c_out, mf_out, t_out = saved_model(input_v, input_a, input_t)
 
             va_label = i['va_label']
             text_label = i['text_label']
 
-            # print(c_out)
-            if c_out[0] > c_out[1]:
-                c_result = False
-            else:
-                c_result = True
+            with torch.no_grad():
+                    c_out, mf_out, t_out = net(input_v, input_a, input_t)
+                    c_out = torch.squeeze(c_out, dim=1)
+            c_result.append(bool(c_out[0].cpu() >= 0.5))
+            c_label.append(bool(va_label))
+            t_result.append(bool(t_out[0].cpu() >= 0.5))
+            t_label.append(bool(text_label))
 
-            # if t_out[0][0] > t_out[0][1]:
-            #     t_result = False
-            # else:
-            #     t_result = True
-
-            # print(t_result)
-
-            if va_label == c_result:
-                c_right = c_right + 1
-            # if text_label == t_result:
-            #     t_right = t_right + 1
-
-            # if va_label == c_result and text_label == t_result:
-            #     all_right = all_right + 1
+            all_result.append(bool((c_out[0].cpu() * (t_out[0].cpu())) >= 0.5))
+            all_label.append(bool(va_label * text_label))
 
             pbar.update()
+    for j in range(len(c_result)):
+        if c_result[j] == c_label[j]:
+            c_right += 1
+            if c_result[j]:
+                c_tp += 1
+        if t_result[j] == t_label[j]:
+            t_right += 1
+            if t_result[j]:
+                t_tp += 1
+        if all_result[j] == all_label[j]:
+            all_right += 1
+            if all_result[j]:
+                all_tp += 1
+
+    p_c = c_tp / (c_result.count(True))
+    p_t = t_tp / (t_result.count(True))
+    p_all = all_tp / (c_result.count(True))
+
+    r_c = c_tp / (c_label.count(True))
+    r_t = t_tp / (t_label.count(True))
+    r_all = all_tp / (all_result.count(True))
+
+    F1_c = (2 * p_c * r_c) / (p_c + r_c)
+    F1_t = (2 * p_t * r_t) / (p_t + r_t)
+    F1_all = (2 * p_all * r_all) / (p_all + r_all)
+
+    print("precision_c: %d\nrecall_c: %d\nF1_c: %d\n" % (p_c, r_c, F1_c))
+    print("precision_t: %d\nrecall_t: %d\nF1_t: %d\n" % (p_t, r_t, F1_t))
+    print("precision_all: %d\nrecall_all: %d\nF1_all: %d\n" % (p_all, r_all, F1_all))
+
     net.train()
-    return c_right/n_val
 
 
 for epoch in range(2000):  # loop over the dataset multiple times
@@ -208,8 +234,8 @@ for epoch in range(2000):  # loop over the dataset multiple times
                      (epoch + 1, idx + 1, running_loss / 10))
             wr.flush()
             running_loss = 0.0
-            eval_result = eval_net(model, val_dataloader, device)
-            print(eval_result)
+            eval_net(model, val_dataloader, device)
+
     if epoch % 20 == 0:
         # pass
         print('Saving Net...')

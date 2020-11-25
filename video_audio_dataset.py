@@ -68,7 +68,7 @@ class VideoAudioDataset(Dataset):
         # video_image = self.transforms(video_image)
         #
         # video_image = video_to_tensor(video_image)
-        video_path = os.path.join(self.root, 'lmks', sample_name)
+        video_path = os.path.join(self.root, 'lmks', sample_name+'.avi')
 
         audio_npy = np.load(os.path.join(self.root, sample_data["relative_path"]))
         if audio_npy.shape[0]<1500:
