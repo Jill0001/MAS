@@ -62,9 +62,8 @@ train_dataloader = load_data(data_root, 'train_label_fake.json')
 val_dataloader = load_data(data_root,'train_label_fake.json')
 
 criterion_L1 = nn.L1Loss()
-criterion_t = nn.L1Loss()
-criterion = nn.CrossEntropyLoss()
-criterion_mf = nn.L1Loss()
+criterion_CE = nn.CrossEntropyLoss()
+
 
 
 def consistency_aug(audio_npy):
@@ -147,13 +146,16 @@ def eval_net(net, loader, device):
 
             with torch.no_grad():
                     c_out, mf_out, t_out = net(input_v, input_a, input_t)
-                    c_out = torch.squeeze(c_out, dim=1)
-            c_result.append(bool(c_out[0].cpu() >= 0.5))
+                    # c_out = torch.squeeze(c_out, dim=1)
+            all_out = c_out * t_out
+
+            c_out = torch.squeeze(c_out, dim=1)
+            c_result.append(bool(c_out[0][0].cpu() <= c_out[0][1].cpu()))
             c_label.append(bool(va_label))
-            t_result.append(bool(t_out[0].cpu() >= 0.5))
+            t_result.append(bool(t_out[0][0].cpu() <= t_out[0][1].cpu()))
             t_label.append(bool(text_label))
 
-            all_result.append(bool((c_out[0].cpu() * (t_out[0].cpu())) >= 0.5))
+            all_result.append(bool((all_out[0][0].cpu() <= all_out[0][1].cpu())))
             all_label.append(bool(va_label * text_label))
 
             pbar.update()
@@ -210,15 +212,14 @@ for epoch in range(2000):  # loop over the dataset multiple times
 
         optimizer.zero_grad()
         c_out, mf_out, t_out = model(input_v, input_a, input_t)
-        c_out = torch.squeeze(c_out, dim=1)
 
         vat_out = (c_out * t_out)
         vat_label = (va_label * text_label)
-        vat_loss = criterion_L1(vat_out, vat_label)
+        vat_loss = criterion_CE(vat_out, vat_label)
 
         mf_loss = criterion_L1(mf_out,before_mf)
         loss = vat_loss + mf_loss
-        print(loss)
+        # print(loss)
         loss.backward()
         optimizer.step()
 

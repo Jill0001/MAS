@@ -11,16 +11,12 @@
         - neg2_audio_npy
         - pos_audio_npy
         
-        - neg1_video
-        - neg2_video
-        - pos_videoå
-        - video_npy
-        
+        - lmks
+       
         - pos_text_npy
         - neg2_text_npy
         
         - pics_dir
-        - pics_dir_cut
         
         - label_train.json
         - label_test.json

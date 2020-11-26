@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0' #！change！
+os.environ['CUDA_VISIBLE_DEVICES'] = '1' #！change！
 import torch
 from torch.utils.data import Dataset,DataLoader
 from video_audio_dataset import VideoAudioDataset
@@ -23,9 +23,9 @@ def load_data(dataroot, json_name):
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-data_root = "/home/scf/PycharmProjects/AudioVideoNet/data_root/new_test_data_root"
+data_root = "/home/jiamengzhao/data_root/new_test_data_root"
 test_dataloader = load_data(data_root,'train_label_fake.json')
-saved_model = load_pth("/home/scf/PycharmProjects/AudioVideoNet/repos/AudioVideoNet/saved_models/epoch0.pth")
+saved_model = load_pth("/home/jiamengzhao/repos/AudioVideoNet/saved_models/epoch0.pth")
 
 # before_mf = np.load(os.path.join(data_root,'text_m_all.npy'))
 # before_mf = torch.tensor(before_mf).float().to(device)
@@ -78,14 +78,17 @@ for idx, i in enumerate(test_dataloader):
     text_label = i['text_label']
 
     c_out, mf_out, t_out = saved_model(input_v, input_a,input_t)
+    all_out = c_out*t_out
+
     c_out = torch.squeeze(c_out, dim=1)
-    c_result.append(bool(c_out[0].cpu()>=0.5))
+    c_result.append(bool(c_out[0][0].cpu()<=c_out[0][1].cpu()))
     c_label.append(bool(va_label))
-    t_result.append(bool(t_out[0].cpu()>=0.5))
+    t_result.append(bool(t_out[0][0].cpu()<=t_out[0][1].cpu()))
     t_label.append(bool(text_label))
 
-    all_result.append(bool((c_out[0].cpu()*(t_out[0].cpu()))>=0.5))
+    all_result.append(bool((all_out[0][0].cpu()<=all_out[0][1].cpu())))
     all_label.append(bool(va_label*text_label))
+print(c_result,c_label,t_result,t_label,all_result,all_label)
 
 for j in range(len(c_result)):
     if c_result[j] == c_label[j]:

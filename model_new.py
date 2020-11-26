@@ -30,12 +30,13 @@ class VATNN(nn.Module):
         self.maxpool_2d_a_3 = nn.MaxPool2d((3, 1))
 
         self.relu = nn.ReLU()
+        self.fc_va_1 = nn.Linear(4096,4096)
+        self.fc_va_2 = nn.Linear(4096,2)
 
         self.topics = Parameter(torch.rand(30, topic_matrix_shape[1]), requires_grad=True)
         self.trash = Parameter(torch.rand(topic_matrix_shape[0], 30), requires_grad=True)
         self.fc_atten = nn.Linear(768,768)
         self.fc_text = nn.Linear(self.topics.shape[0], 2)
-        self.l1loss=  nn.L1Loss()
 
 
 
@@ -64,14 +65,20 @@ class VATNN(nn.Module):
         a = self.relu(self.conv2d_a_5(a))
         a = torch.reshape(a,((batchsize,-1,1)))
 
-        va_corelation = torch.cosine_similarity(v,a,dim=1)
+        va_concat= torch.squeeze(torch.cat((v,a),dim=1),dim=2)
+
+
+        va_out = self.fc_va_1(va_concat)
+        va_out = self.fc_va_2(va_out)
+        # va_corelation = torch.cosine_similarity(v,a,dim=1)
 
         t = t.view(-1, 768)  # 768 is text embedding size
         t = self.fc_atten(t)
 
         t_distance = torch.mm(t, self.topics.t())
-        t_out = torch.sum(t_distance,dim=1)
+        t_out = self.fc_text(t_distance)
 
+        # t_out = torch.sum(t_distance,dim=1)
 
         mf_result = torch.mm(self.trash, self.topics)
 
@@ -79,4 +86,4 @@ class VATNN(nn.Module):
         # mf_distance = before_mf-mf_result
         # mf_out = torch.mean((mf_distance)**2)
 
-        return va_corelation, mf_result, t_out
+        return va_out, mf_result, t_out
