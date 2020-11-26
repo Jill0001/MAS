@@ -1,11 +1,12 @@
 import os
-
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+#
+# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 import torch
 from torch.utils.data import Dataset, DataLoader
 from video_audio_dataset import VideoAudioDataset
 import torch.nn as nn
+from torch.nn import Parameter,functional
 from torch.autograd import Variable
 import torch.optim as optim
 import numpy as np
@@ -42,7 +43,7 @@ def load_data(data_root, json_name,batch_size):
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/new_test_data_root/text_m_all.npy")).float().to(device)
+before_mf = torch.tensor(np.load("/home/scf/PycharmProjects/AudioVideoNet/data_root/data_for_sample/text_m_all.npy")).float().to(device)
 origin_topics_shape = before_mf.shape
 
 LOAD_MODEL = False
@@ -56,10 +57,11 @@ if LOAD_MODEL:
 else:
     model = VATNN(origin_topics_shape).to(device)
 
-optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-train_dataloader = load_data(data_root, 'train_label_fake.json',2)
-val_dataloader = load_data(data_root,'train_label_fake.json',1)
+
+train_dataloader = load_data(data_root, 'train_label.json',2)
+val_dataloader = load_data(data_root,'val_label.json',1)
 
 criterion_L1 = nn.L1Loss()
 criterion_CE = nn.CrossEntropyLoss()
@@ -137,12 +139,12 @@ def eval_net(net, loader, device):
 
     with tqdm(total=n_val, desc='Validation round', unit='batch', leave=False) as pbar:
         for batch in loader:
-            input_a = torch.unsqueeze((i['np_A']).float().to(device), dim=1)
-            input_v = torch.unsqueeze(torch.Tensor(extract_v_feature(i['np_V'])).to(device), dim=1)
-            input_t = i['text_data'].float().to(device)
+            input_a = torch.unsqueeze((batch['np_A']).float().to(device), dim=1)
+            input_v = torch.unsqueeze(torch.Tensor(extract_v_feature(batch['np_V'])).to(device), dim=1)
+            input_t = batch['text_data'].float().to(device)
 
-            va_label = i['va_label']
-            text_label = i['text_label']
+            va_label = batch['va_label']
+            text_label = batch['text_label']
 
             with torch.no_grad():
                     c_out, mf_out, t_out = net(input_v, input_a, input_t)
@@ -172,6 +174,7 @@ def eval_net(net, loader, device):
             all_right += 1
             if all_result[j]:
                 all_tp += 1
+    # print(c_right,t_right,all_right,len(c_result))
 
     p_c = c_tp / (c_result.count(True))
     p_t = t_tp / (t_result.count(True))
@@ -185,9 +188,9 @@ def eval_net(net, loader, device):
     F1_t = (2 * p_t * r_t) / (p_t + r_t)
     F1_all = (2 * p_all * r_all) / (p_all + r_all)
 
-    print("precision_c: %d\nrecall_c: %d\nF1_c: %d\n" % (p_c, r_c, F1_c))
-    print("precision_t: %d\nrecall_t: %d\nF1_t: %d\n" % (p_t, r_t, F1_t))
-    print("precision_all: %d\nrecall_all: %d\nF1_all: %d\n" % (p_all, r_all, F1_all))
+    print("precision_c: %f\nrecall_c: %f\nF1_c: %f\n" % (p_c, r_c, F1_c))
+    print("precision_t: %f\nrecall_t: %f\nF1_t: %f\n" % (p_t, r_t, F1_t))
+    print("precision_all: %f\nrecall_all: %f\nF1_all: %f\n" % (p_all, r_all, F1_all))
 
     net.train()
 
@@ -195,6 +198,8 @@ def eval_net(net, loader, device):
 for epoch in range(2000):  # loop over the dataset multiple times
 
     running_loss = 0.0
+    running_loss_vat= 0.0
+    running_loss_mf= 0.0
     for idx, i in enumerate(train_dataloader):
 
 
@@ -214,30 +219,40 @@ for epoch in range(2000):  # loop over the dataset multiple times
         c_out, mf_out, t_out = model(input_v, input_a, input_t)
 
         vat_out = (c_out * t_out)
+
+        # vat_train_label.jsonout = nn.functional.softmax(vat_out)
         vat_label = (va_label * text_label)
         vat_loss = criterion_CE(vat_out, vat_label)
+        # c_loss = criterion_CE(c_out,va_label)
+
 
         mf_loss = criterion_L1(mf_out,before_mf)
         loss = vat_loss + mf_loss
-        # print(loss)
+        # loss = c_loss
+
         loss.backward()
         optimizer.step()
 
         # print statistics
 
         running_loss += loss.item()
+        running_loss_vat += vat_loss.item()
+        running_loss_mf += mf_loss.item()
         if idx % 10 == 9:  # print every * mini-batches
             cost_time = time.time() - time_now
             time_now = time.time()
-            print('[%d, %5d] loss: %.3f, cost_time: %.3f' %
-                  (epoch + 1, idx + 1, running_loss / 10, cost_time))
+            print('[%d, %5d] loss: %.3f, vat_loss: %.3f, mf_loss: %.3f, cost_time: %.3f' %
+                  (epoch + 1, idx + 1, running_loss / 10, running_loss_vat / 10,running_loss_mf / 10, cost_time))
             wr.write('%d, %5d loss: %.3f\n' %
                      (epoch + 1, idx + 1, running_loss / 10))
             wr.flush()
             running_loss = 0.0
-            eval_net(model, val_dataloader, device)
+            running_loss_vat =0.0
+            running_loss_mf=0.0
 
-    if epoch % 20 == 0:
+
+    if epoch % 10 == 0:
         # pass
         print('Saving Net...')
-        torch.save(model, os.path.join(saved_model_path, 'epoch' + str(epoch) + '.pth'))
+        # torch.save(model, os.path.join(saved_model_path, 'epoch' + str(epoch) + '.pth'))
+        eval_net(model, val_dataloader, device)

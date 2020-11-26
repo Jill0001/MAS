@@ -1,7 +1,7 @@
 import torch.nn as nn
 import numpy as np
 import torch
-from torch.nn import Parameter
+from torch.nn import Parameter,functional
 
 # change! origin topics matrix path
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,6 +42,22 @@ class VATNN(nn.Module):
 
     def forward(self, v, a, t):
         batchsize = v.shape[0]
+
+        t = t.view(-1, 768)  # 768 is text embedding size
+        t = self.fc_atten(t)
+
+        t_distance = torch.mm(t, self.topics.t())
+        t_out = self.fc_text(t_distance)
+        t_out =nn.functional.softmax(t_out,dim=1)
+
+        # t_out = torch.sum(t_distance,dim=1)
+
+        mf_result = torch.mm(self.trash, self.topics)
+
+        # mf_loss =self.l1loss(mf_result,before_mf)
+        # mf_distance = before_mf-mf_result
+        # mf_out = torch.mean((mf_distance)**2)
+
         v = self.relu(self.conv3d_v_1(v))
         v = self.maxpool_3d_v(v)
         v = self.relu(self.conv3d_v_2(v))
@@ -67,23 +83,11 @@ class VATNN(nn.Module):
 
         va_concat= torch.squeeze(torch.cat((v,a),dim=1),dim=2)
 
+        w = torch.reshape(t_out[:,1],(-1,1))
 
-        va_out = self.fc_va_1(va_concat)
-        va_out = self.fc_va_2(va_out)
+        va_out = self.fc_va_1(va_concat*w)
+        va_out = self.fc_va_2(va_out*w)
+        # va_out = nn.functional.softmax(va_out,dim=1)
         # va_corelation = torch.cosine_similarity(v,a,dim=1)
-
-        t = t.view(-1, 768)  # 768 is text embedding size
-        t = self.fc_atten(t)
-
-        t_distance = torch.mm(t, self.topics.t())
-        t_out = self.fc_text(t_distance)
-
-        # t_out = torch.sum(t_distance,dim=1)
-
-        mf_result = torch.mm(self.trash, self.topics)
-
-        # mf_loss =self.l1loss(mf_result,before_mf)
-        # mf_distance = before_mf-mf_result
-        # mf_out = torch.mean((mf_distance)**2)
 
         return va_out, mf_result, t_out

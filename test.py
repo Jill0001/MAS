@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '1' #！change！
+os.environ['CUDA_VISIBLE_DEVICES'] = '0' #！change！
 import torch
 from torch.utils.data import Dataset,DataLoader
 from video_audio_dataset import VideoAudioDataset
@@ -23,9 +23,9 @@ def load_data(dataroot, json_name):
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-data_root = "/home/jiamengzhao/data_root/new_test_data_root"
-test_dataloader = load_data(data_root,'train_label_fake.json')
-saved_model = load_pth("/home/jiamengzhao/repos/AudioVideoNet/saved_models/epoch0.pth")
+data_root = "/home/scf/PycharmProjects/AudioVideoNet/data_root/data_for_sample"
+test_dataloader = load_data(data_root,'test_label.json')
+saved_model = load_pth("/home/scf/PycharmProjects/AudioVideoNet/repos/AudioVideoNet/saved_models/epoch20.pth")
 
 # before_mf = np.load(os.path.join(data_root,'text_m_all.npy'))
 # before_mf = torch.tensor(before_mf).float().to(device)
@@ -80,7 +80,6 @@ for idx, i in enumerate(test_dataloader):
     c_out, mf_out, t_out = saved_model(input_v, input_a,input_t)
     all_out = c_out*t_out
 
-    c_out = torch.squeeze(c_out, dim=1)
     c_result.append(bool(c_out[0][0].cpu()<=c_out[0][1].cpu()))
     c_label.append(bool(va_label))
     t_result.append(bool(t_out[0][0].cpu()<=t_out[0][1].cpu()))
@@ -88,7 +87,7 @@ for idx, i in enumerate(test_dataloader):
 
     all_result.append(bool((all_out[0][0].cpu()<=all_out[0][1].cpu())))
     all_label.append(bool(va_label*text_label))
-# print(c_result,c_label,t_result,t_label,all_result,all_label)
+print(c_result,t_result,all_result)
 
 for j in range(len(c_result)):
     if c_result[j] == c_label[j]:
@@ -116,6 +115,6 @@ F1_c =(2*p_c*r_c)/(p_c+r_c)
 F1_t =(2*p_t*r_t)/(p_t+r_t)
 F1_all =(2*p_all*r_all)/(p_all+r_all)
 
-print("precision_c: %d\nrecall_c: %d\nF1_c: %d\n"%(p_c,r_c,F1_c))
-print("precision_t: %d\nrecall_t: %d\nF1_t: %d\n"%(p_t,r_t,F1_t))
-print("precision_all: %d\nrecall_all: %d\nF1_all: %d\n"%(p_all,r_all,F1_all))
+print("precision_c: %f\nrecall_c: %f\nF1_c: %f\n"%(p_c,r_c,F1_c))
+print("precision_t: %f\nrecall_t: %f\nF1_t: %f\n"%(p_t,r_t,F1_t))
+print("precision_all: %f\nrecall_all: %f\nF1_all: %f\n"%(p_all,r_all,F1_all))
