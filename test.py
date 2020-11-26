@@ -88,7 +88,7 @@ for idx, i in enumerate(test_dataloader):
 
     all_result.append(bool((all_out[0][0].cpu()<=all_out[0][1].cpu())))
     all_label.append(bool(va_label*text_label))
-print(c_result,c_label,t_result,t_label,all_result,all_label)
+# print(c_result,c_label,t_result,t_label,all_result,all_label)
 
 for j in range(len(c_result)):
     if c_result[j] == c_label[j]:

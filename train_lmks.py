@@ -35,9 +35,9 @@ saved_model_path = args.save_model_path
 if not os.path.exists(saved_model_path):
     os.makedirs(saved_model_path)
 
-def load_data(data_root, json_name):
+def load_data(data_root, json_name,batch_size):
     dataset = VideoAudioDataset(data_root, os.path.join(data_root, json_name))
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=4, shuffle=True, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=True, drop_last=True)
     return dataloader
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -58,8 +58,8 @@ else:
 
 optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
 
-train_dataloader = load_data(data_root, 'train_label_fake.json')
-val_dataloader = load_data(data_root,'train_label_fake.json')
+train_dataloader = load_data(data_root, 'train_label_fake.json',2)
+val_dataloader = load_data(data_root,'train_label_fake.json',1)
 
 criterion_L1 = nn.L1Loss()
 criterion_CE = nn.CrossEntropyLoss()
