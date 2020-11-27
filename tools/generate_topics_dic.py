@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 train_label_path = args.train_label
 topics_m_path = args.out_m_npy
-text_npy_dir = os.path.join(args.data_root, 'pos_text_npy')
+text_npy_dir = os.path.join(args.data_root, 'text_pos_npy')
 select_num= args.select_num
 
 f = open(train_label_path)

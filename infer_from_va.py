@@ -52,16 +52,16 @@ audio_npy_dir = os.path.join(data_root, 'audio_npy')
 # neg1_video_npy_dir = os.path.join(data_root, 'neg1_video_npy')
 # neg2_video_npy_dir = os.path.join(data_root, 'neg2_video_npy')
 
-# pos_text_npy_dir = os.path.join(data_root, 'pos_text_npy')
+# pos_text_npy_dir = os.path.join(data_root, 'text_pos_npy')
 # neg_text_npy_dir = os.path.join(data_root, 'neg2_text_npy')
 
 pics_dir = os.path.join(data_root,'pics_dir')
 # pics_dir_cut = os.path.join(data_root,'pics_dir_cut')
 
-# train_label_json = os.path.join(data_root,'train_label.json')
-# test_label_json = os.path.join(data_root,'test_label.json')
+# train_label_json = os.path.join(data_root,'train.json')
+# test_label_json = os.path.join(data_root,'test.json')
 
-# topics_m_npy = os.path.join(data_root,'text_m_all.npy')
+# topics_m_npy = os.path.join(data_root,'topics.npy')
 
 
 def make_dir(dir_path):

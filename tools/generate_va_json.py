@@ -21,7 +21,7 @@ neg1_audio_dir = os.path.join(data_root, 'neg1_audio_npy')
 neg2_audio_dir = os.path.join(data_root, 'neg2_audio_npy')
 pos_audio_dir = os.path.join(data_root, 'pos_audio_npy')
 
-text_npy_dir_pos = os.path.join(data_root, 'pos_text_npy')
+text_npy_dir_pos = os.path.join(data_root, 'text_pos_npy')
 text_npy_dir_neg = os.path.join(data_root, 'neg2_text_npy')
 # text_json_path = "/home/jiamengzhao/repos/AudioVideoNet/new_test_data_root/audio_gloved.json"  #after word2vec with label
 

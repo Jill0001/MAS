@@ -24,10 +24,10 @@ def load_data(dataroot, json_name):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 data_root = "/home/scf/PycharmProjects/AudioVideoNet/data_root/data_for_sample"
-test_dataloader = load_data(data_root,'test_label.json')
+test_dataloader = load_data(data_root,'test.json')
 saved_model = load_pth("/home/scf/PycharmProjects/AudioVideoNet/repos/AudioVideoNet/saved_models/epoch20.pth")
 
-# before_mf = np.load(os.path.join(data_root,'text_m_all.npy'))
+# before_mf = np.load(os.path.join(data_root,'topics.npy'))
 # before_mf = torch.tensor(before_mf).float().to(device)
 
 def extract_v_feature(input_v):

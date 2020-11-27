@@ -5,7 +5,7 @@ from torch.nn import Parameter
 
 # change! origin topics matrix path
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/new_test_data_root/text_m_all.npy")).float().to(device)
+before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/new_test_data_root/topics.npy")).float().to(device)
 origin_topics_shape = before_mf.shape
 
 

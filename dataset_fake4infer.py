@@ -54,7 +54,7 @@ class VideoAudioDataset_infer(Dataset):
         video_npy = np.load(os.path.join(self.root,'video_npy',sample_name+'.avi.npy'))
         audio_npy = np.load(os.path.join(self.root,sample_data["relative_path"]))
         if sample_data['text_label'] == 1:
-            text_npy = np.load(os.path.join(self.root,'pos_text_npy',sample_name+'.npy'))
+            text_npy = np.load(os.path.join(self.root,'text_pos_npy',sample_name+'.npy'))
         else:
             if os.path.exists(os.path.join(self.root,'neg2_text_npy',sample_name+'.npy')):
                 text_npy = np.load(os.path.join(self.root, 'neg2_text_npy', sample_name + '.npy'))
