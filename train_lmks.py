@@ -16,7 +16,7 @@ from pytorch_i3d import videotransforms
 from torch import autograd
 import argparse
 # from pytorch_i3d.pytorch_i3d import InceptionI3d
-from model_new import VATNN
+from model_new_attention import VATNN
 # from pytorch_i3d.extract_features_training import ExtractVideoFeature
 import time
 import random
@@ -48,7 +48,7 @@ before_mf = torch.tensor(np.load("/home/scf/PycharmProjects/AudioVideoNet/data_r
 origin_topics_shape = before_mf.shape
 
 LOAD_MODEL = False
-# LOAD_MODEL = True
+LOAD_MODEL = True
 
 if LOAD_MODEL:
     saved_model_list = os.listdir(saved_model_path)
@@ -59,7 +59,7 @@ if LOAD_MODEL:
 else:
     model = VATNN(origin_topics_shape).to(device)
 
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
 
 
 train_dataloader = load_data(data_root, 'train.json',4)
