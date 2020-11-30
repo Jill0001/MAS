@@ -1,6 +1,6 @@
 import os
 #
-# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = ""
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -16,7 +16,7 @@ from pytorch_i3d import videotransforms
 from torch import autograd
 import argparse
 # from pytorch_i3d.pytorch_i3d import InceptionI3d
-from model_new_attention import VATNN
+from model_fc import VATNN
 # from pytorch_i3d.extract_features_training import ExtractVideoFeature
 import time
 import random
@@ -44,11 +44,11 @@ def load_data(data_root, json_name,batch_size):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print(device)
 # before_mf = torch.tensor(np.load("./topics.npy")).float().to(device)
-before_mf = torch.tensor(np.load("/home/scf/PycharmProjects/AudioVideoNet/data_root/data_root_test/topics.npy")).float().to(device)
+before_mf = torch.tensor(np.load("/home/jiamengzhao/data_root/data_for_sample/text_m_all.npy")).float().to(device)
 origin_topics_shape = before_mf.shape
 
 LOAD_MODEL = False
-LOAD_MODEL = True
+# LOAD_MODEL = True
 
 if LOAD_MODEL:
     saved_model_list = os.listdir(saved_model_path)
@@ -70,14 +70,12 @@ criterion_CE = nn.CrossEntropyLoss().to(device)
 
 
 
-def consistency_aug(audio_npy):
-    audio_npy_chucks = []
-    for i in range(5):
-        audio_npy_chucks.append(audio_npy[:,i*10:(i+1)*10,:])
-    random.shuffle(audio_npy_chucks)
-    tensor_npy = audio_npy_chucks[0]
-    for j in audio_npy_chucks[1:]:
-        tensor_npy = torch.cat((tensor_npy,j),axis=1)
+def consistency_aug(video_npy):
+    video_npy_chucks = []
+    for i in range(3):
+        video_npy_chucks.append(video_npy[:,i*10:(i+1)*10,:])
+    random.shuffle(video_npy_chucks)
+    tensor_npy = torch.Tensor(tuple(video_npy_chucks))
     return tensor_npy
 
 
@@ -214,30 +212,29 @@ for epoch in range(2000):  # loop over the dataset multiple times
         input_a = torch.unsqueeze(i['np_A'], 1).to(device)
         input_v = torch.unsqueeze(i['np_V'], 1).to(device)
         input_t = i['text_data'].to(device)
-
         
         va_label = i['va_label'].long().to(device)
         text_label = i['text_label'].long().to(device)
 
         # is_reverse = np.random.rand(1)
-        # if is_reverse> 0.5 and va_label:
-        #     input_a = consistency_aug(input_a)
+        # if is_reverse> 0.5 and text_label:
+        #     input_v = consistency_aug(input_v)
         #     va_label = va_label-1
 
         optimizer.zero_grad()
-        c_out, mf_out, t_out = model(input_v, input_a, input_t)
+        all_out, mf_out= model(input_v, input_a, input_t)
 
-        vat_out = (c_out * t_out)
+        # vat_out = (c_out * t_out)
 
         # vat_train_label.jsonout = nn.functional.softmax(vat_out)
         vat_label = (va_label * text_label)
 
-        vat_loss = criterion_CE(vat_out, vat_label)
+        vat_loss = criterion_CE(all_out, vat_label)
         # c_loss = criterion_CE(c_out,va_label)
 
         mf_loss = criterion_L1(mf_out,before_mf)
         loss = vat_loss + mf_loss
-        # print(vat_loss,mf_loss,loss)
+        print(vat_loss,mf_loss,loss)
 
         loss.backward()
         optimizer.step()
@@ -259,7 +256,7 @@ for epoch in range(2000):  # loop over the dataset multiple times
             running_loss_vat =0.0
             running_loss_mf=0.0
 
-    if epoch % 1 == 0:
+    if epoch % 10 == 9:
         # pass
         print('Saving Net...')
         torch.save(model, os.path.join(saved_model_path, 'epoch' + str(epoch) + '.pth'))
