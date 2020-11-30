@@ -1,6 +1,6 @@
 import os
 #
-os.environ['CUDA_VISIBLE_DEVICES'] = ""
+os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -153,9 +153,9 @@ def eval_net(net, loader, device):
             text_label = batch['text_label'].long().to(device)
 
             with torch.no_grad():
-                    c_out, mf_out, t_out = net(input_v, input_a, input_t)
+                    all_out, mf_out = net(input_v, input_a, input_t)
                     # c_out = torch.squeeze(c_out, dim=1)
-            all_out = c_out * t_out
+            # all_out = c_out * t_out
 
             # c_out = torch.squeeze(c_out, dim=1)
             # c_result.append(bool(c_out[0][0].cpu() <= c_out[0][1].cpu()))
@@ -234,7 +234,7 @@ for epoch in range(2000):  # loop over the dataset multiple times
 
         mf_loss = criterion_L1(mf_out,before_mf)
         loss = vat_loss + mf_loss
-        print(vat_loss,mf_loss,loss)
+        # print(vat_loss,mf_loss,loss)
 
         loss.backward()
         optimizer.step()

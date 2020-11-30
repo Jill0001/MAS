@@ -96,12 +96,14 @@ class VideoAudioDataset(Dataset):
             audio_npy = np.concatenate((audio_npy, padding_zeros))
         else:
             audio_npy = audio_npy[:1500, :]
-
+        text_name = sample_data["audio_path"].split('/')[-1]
         if sample_data['text_label'] == 1:
-            text_npy = np.load(os.path.join(self.root, 'text_pos_npy', sample_name + '.npy'))
+            text_npy = np.load(os.path.join(self.root, 'text_pos_npy', text_name))
+
+            # text_npy = np.load(os.path.join(self.root, 'text_pos_npy', sample_name + '.npy'))
         else:
-            if os.path.exists(os.path.join(self.root, 'text_neg_npy', sample_name + '.npy')):
-                text_npy = np.load(os.path.join(self.root, 'text_neg_npy', sample_name + '.npy'))
+            if os.path.exists(os.path.join(self.root, 'text_neg_npy', text_name)):
+                text_npy = np.load(os.path.join(self.root, 'text_neg_npy', text_name ))
             else:
                 text_npy = np.zeros(768)
                 # text_npy = np.zeros((24,300))

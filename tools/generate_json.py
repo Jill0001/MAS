@@ -88,13 +88,12 @@ def generate_one_sample(sample_audio_npy_path):
 
 
 def generate_fake_neg3(sample_audio_npy_path):
-    one_sample_name = sample_audio_npy_path.split('/')[-1].replace('.npy', '')
+    one_sample_name = sample_audio_npy_path.split('/')[-1].replace('.npy', '_neg3')
     video_path_list = os.listdir(video_dir)
     video_num = len(video_path_list)
 
     one_sampel_dic = {}
     one_sampel_dic['va_label'] = 0
-
     one_sampel_dic['audio_path'] = sample_audio_npy_path.split('/')[-2] + "/" + sample_audio_npy_path.split('/')[-1]
 
     while True:
@@ -104,11 +103,12 @@ def generate_fake_neg3(sample_audio_npy_path):
             break
 
     pos_text_names = os.listdir(text_npy_dir_pos)
-    one_sample_text_name = one_sample_name + '.npy'
+    one_sample_text_name = sample_audio_npy_path.split('/')[-1]
 
     if one_sample_text_name in pos_text_names:
         one_sampel_dic['text_label'] = 1
     else:
+
         one_sampel_dic = []
 
     train_or_test = np.random.rand(1)
