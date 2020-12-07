@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import cv2
 import json
-from pytorch_i3d.extract_features_training import ExtractVideoFeature
+# from pytorch_i3d.extract_features_training import ExtractVideoFeature
 
 
 def video_to_tensor(pic):

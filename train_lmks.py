@@ -1,6 +1,6 @@
 import os
 #
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+# os.environ['CUDA_VISIBLE_DEVICES'] = ""
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -12,12 +12,9 @@ import torch.optim as optim
 import numpy as np
 from torch.nn import Parameter
 from torchvision import datasets, transforms
-from pytorch_i3d import videotransforms
 from torch import autograd
 import argparse
-# from pytorch_i3d.pytorch_i3d import InceptionI3d
 from model_fc import VATNN
-# from pytorch_i3d.extract_features_training import ExtractVideoFeature
 import time
 import random
 from tqdm import tqdm
@@ -59,7 +56,7 @@ if LOAD_MODEL:
 else:
     model = VATNN(origin_topics_shape).to(device)
 
-optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
 
 train_dataloader = load_data(data_root, 'train.json',4)
@@ -233,8 +230,8 @@ for epoch in range(2000):  # loop over the dataset multiple times
         # c_loss = criterion_CE(c_out,va_label)
 
         mf_loss = criterion_L1(mf_out,before_mf)
-        loss = vat_loss + mf_loss
-        # print(vat_loss,mf_loss,loss)
+        loss = vat_loss+mf_loss
+        print(vat_loss,mf_loss,loss)
 
         loss.backward()
         optimizer.step()

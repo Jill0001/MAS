@@ -35,21 +35,50 @@ class VATNN(nn.Module):
 
         self.topics = Parameter(torch.rand(30, topic_matrix_shape[1]), requires_grad=True)
         self.trash = Parameter(torch.rand(topic_matrix_shape[0], 30), requires_grad=True)
+        self.W1 = nn.Linear(2 * 768, 64)
+        self.w1 = nn.Linear(64, 1, bias=False)
+
+        # self.W1 = Parameter(torch.rand(64,1), requires_grad=True)
+        # self.W2 = Parameter(torch.rand((768*2,64)), requires_grad=True)
+        # self.b2 = Parameter(torch.rand((30,64)),requires_grad=True)
+        self.att_fc = nn.Linear(768,2)
         self.fc_atten = nn.Linear(768,768)
         self.fc_text = nn.Linear(self.topics.shape[0], 2)
+
+        self.all_fc_1 = nn.Linear(4,4)
+        self.all_fc_2 = nn.Linear(4,2)
 
 
 
     def forward(self, v, a, t):
         batchsize = v.shape[0]
+        topics_num = self.topics.shape[0]
+        # repeat_t = []
+        # for i in range(batchsize):
+        t = torch.unsqueeze(t,dim=1)
+        t = t.expand(t.shape[0],topics_num,t.shape[2])
 
-        t = t.view(-1, 768)  # 768 is text embedding size
-        t = self.fc_atten(t)
+        topics = torch.unsqueeze(self.topics,dim=0)
+        topics = topics.expand(batchsize,-1,-1)
+        # print(topics.shape)
+        # print(t.shape)
+        # exit()
+        # repeat_t.append(t[i,:].repeat(topics_num,1)) # 768 is text embedding size
+        # concat = torch.cat(tuple(repeat_t))
+        # topics = self.topics.repeat(batchsize,1)
+        t_concat = torch.cat((topics,t),dim=2)
+        att_method = self.w1(functional.tanh(self.W1(t_concat)))
+        # bias = self.b2.repeat((batchsize,1))
+        # att_method = torch.mm(torch.tanh(torch.mm(t_concat,self.W2)+bias),self.W1)
+        weighted_topics = functional.softmax(att_method, -1).reshape((batchsize,1,-1))
+        t_out = torch.bmm(weighted_topics,topics).squeeze(1)
+        t_out = self.att_fc(t_out)
 
-        t_distance = torch.mm(t, self.topics.t())
-        t_out = self.fc_text(t_distance)
-        t_out =nn.functional.softmax(t_out,dim=1)
-
+        # t_out=torch.reshape(t_out,(batchsize,2))
+        # t = self.fc_atten(t)
+        # t_distance = torch.mm(t, self.topics.t())
+        # t_out = self.fc_text(t_distance)
+        # t_out =nn.functional.softmax(t_out,dim=1)
         # t_out = torch.sum(t_distance,dim=1)
 
         mf_result = torch.mm(self.trash, self.topics)
@@ -68,6 +97,8 @@ class VATNN(nn.Module):
         v = self.maxpool_3d_v(v)
         v = self.relu(self.conv3d_v_5(v))
         v = self.maxpool_3d_v_final(v)
+
+
         v = torch.reshape(v,(batchsize,-1,1))
 
         a = self.relu(self.conv2d_a_1(a))
@@ -82,13 +113,13 @@ class VATNN(nn.Module):
         a = torch.reshape(a,((batchsize,-1,1)))
 
         va_concat= torch.squeeze(torch.cat((v,a),dim=1),dim=2)
-
-        # w = torch.reshape(t_out[:,1],(-1,1))
-        # va_out = self.fc_va_1(va_concat*w)
-        # va_out = self.fc_va_2(va_out*w)
         va_out = self.fc_va_1(va_concat)
         va_out = self.fc_va_2(va_out)
         # va_out = nn.functional.softmax(va_out,dim=1)
         # va_corelation = torch.cosine_similarity(v,a,dim=1)
 
-        return va_out, mf_result, t_out
+        # all_concat = torch.cat((va_out,t_out),dim=1)
+        # all_out = self.all_fc_1(all_concat)
+        # all_out = self.all_fc_2(all_out)
+
+        return va_out,t_out, mf_result
