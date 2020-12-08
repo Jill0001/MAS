@@ -9,7 +9,7 @@ import torch.optim as optim
 import numpy as np
 from torch.nn import Parameter
 from torch import autograd
-from model_new import VATNN
+from model_fc import VATNN
 
 def load_pth(pth_path):
     return torch.load(pth_path,map_location=torch.device('cpu'))

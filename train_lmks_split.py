@@ -87,14 +87,10 @@ def eval_net(net, loader, device):
     c_tp = 0
     t_right = 0
     t_tp = 0
-    all_right = 0
-    all_tp = 0
     c_result = []
     c_label = []
     t_result = []
     t_label = []
-    all_result = []
-    all_label = []
 
     with tqdm(total=n_val, desc='Validation round', unit='batch', leave=False) as pbar:
         for batch in loader:
@@ -120,7 +116,7 @@ def eval_net(net, loader, device):
             # all_label.append(bool(va_label * text_label))
 
             pbar.update()
-    for j in range(len(all_result)):
+    for j in range(len(c_result)):
         if c_result[j] == c_label[j]:
             c_right += 1
             if c_result[j]:
@@ -133,7 +129,7 @@ def eval_net(net, loader, device):
         #     all_right += 1
         #     if all_result[j]:
         #         all_tp += 1
-    print(c_right,t_right,all_right,len(c_result))
+    print(c_right,t_right,len(c_result))
     print(c_tp, t_tp, all_tp)
     # print(all_right, len(all_result), all_right / len(all_result))
     p_c = c_tp / (c_result.count(True) + 1e-6)
