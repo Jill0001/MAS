@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import cv2
 import json
-from pytorch_i3d.extract_features_training import ExtractVideoFeature
+# from pytorch_i3d.extract_features_training import ExtractVideoFeature
 
 
 def video_to_tensor(pic):
@@ -18,6 +18,27 @@ def video_to_tensor(pic):
          Tensor: Converted video.
     """
     return torch.from_numpy(pic.transpose([3, 0, 1, 2]))
+
+def extract_v_feature(input_v):
+    arr_names = [f for f in os.listdir(input_v) if f.endswith('.npy')]
+    video_npy = []
+    for i in range(1, len(arr_names) + 1):
+        arr_name = os.path.join(input_v, str(i) + '.npy')
+        arr_number = np.load(arr_name)
+        print(max(arr_number))
+        center = arr_number[30]
+        # after_decenter = np.zeros((1, 2))
+        after_decenter = []
+        for j in arr_number:
+            after_decenter.append(j - center)
+            # after_decenter = np.concatenate((after_decenter, (np.expand_dims(j - center, 0))))
+        after_decenter = np.array(after_decenter)
+        video_npy.append(after_decenter)
+    video_npy = np.array(video_npy)
+    if video_npy.shape[0] < 500:  # padding size
+        padding_zeros = np.zeros((500 - video_npy.shape[0], video_npy.shape[1], video_npy.shape[2]))
+        video_npy = np.concatenate((video_npy, padding_zeros))
+    return video_npy
 
 
 class VideoAudioDataset(Dataset):
@@ -68,20 +89,22 @@ class VideoAudioDataset(Dataset):
         # video_image = self.transforms(video_image)
         #
         # video_image = video_to_tensor(video_image)
-        video_path = os.path.join(self.root, 'lmks', sample_name+'.avi')
+        video_path = os.path.join(self.root, 'lmks', sample_data['video_path'])
 
-        audio_npy = np.load(os.path.join(self.root, sample_data["relative_path"]))
-        if audio_npy.shape[0]<1500:
-            padding_zeros = np.zeros((1500 - audio_npy.shape[0],audio_npy.shape[1]))
+        audio_npy = np.load(os.path.join(self.root, sample_data["audio_path"]))
+        if audio_npy.shape[0] < 1500:
+            padding_zeros = np.zeros((1500 - audio_npy.shape[0], audio_npy.shape[1]))
             audio_npy = np.concatenate((audio_npy, padding_zeros))
         else:
-            audio_npy = audio_npy[:1500,:]
-
+            audio_npy = audio_npy[:1500, :]
+        text_name = sample_data["audio_path"].split('/')[-1]
         if sample_data['text_label'] == 1:
-            text_npy = np.load(os.path.join(self.root, 'text_pos_npy', sample_name + '.npy'))
+            text_npy = np.load(os.path.join(self.root, 'text_pos_npy', text_name))
+
+            # text_npy = np.load(os.path.join(self.root, 'text_pos_npy', sample_name + '.npy'))
         else:
-            if os.path.exists(os.path.join(self.root, 'neg2_text_npy', sample_name + '.npy')):
-                text_npy = np.load(os.path.join(self.root, 'neg2_text_npy', sample_name + '.npy'))
+            if os.path.exists(os.path.join(self.root, 'text_neg_npy', text_name)):
+                text_npy = np.load(os.path.join(self.root, 'text_neg_npy', text_name ))
             else:
                 text_npy = np.zeros(768)
                 # text_npy = np.zeros((24,300))
@@ -90,9 +113,11 @@ class VideoAudioDataset(Dataset):
         #                               one_pic_dir=os.path.join(self.root,'pics_dir',sample_name+'.mp4'),
         #                               load_model='/home/jiamengzhao/repos/AudioVideoNet/pytorch_i3d/models/rgb_charades.pt')
 
-        sample = {'np_V': video_path, 'np_A': audio_npy, 'text_data': text_npy,
+        audio_npy = torch.from_numpy(audio_npy).float()
+        text_npy = torch.from_numpy(text_npy).float()
+        video_npy = torch.Tensor(extract_v_feature(video_path))
+        sample = {'np_V': video_npy, 'np_A': audio_npy, 'text_data': text_npy,
                   'va_label': sample_data["va_label"], 'text_label': sample_data['text_label']}
-
         return sample
 
 

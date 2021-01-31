@@ -54,7 +54,7 @@ for idx, i in enumerate(test_dataloader):
     text_label = i['text_label'].long().to(device)
 
     with torch.no_grad():
-        c_out, t_out, mf_out = net(input_v, input_a, input_t)
+        c_out, t_out, mf_out = saved_model(input_v, input_a, input_t)
     all_out = c_out * t_out
 
     c_result.append(bool(c_out[0][0].cpu() <= c_out[0][1].cpu()))
