@@ -63,7 +63,7 @@
 
     -  Tool path: ./tools/padding_npys.py
 
-    - 用法：
+    - Usage：
 
         ```
         python padding_npys.py -i data_root
